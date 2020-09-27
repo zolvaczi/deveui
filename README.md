@@ -10,6 +10,7 @@
 ## API Requirements
 1. An HTTP API must be implemented for machine consumption of the service/functionality
 1. The response is JSON representation: `{“deveuis”: [“FFA45722AA738240”,....]}`
+1. The API must be idempotent
 
 ## LoRaWAN API
 
@@ -31,6 +32,11 @@ paths:
 				422:
 					description: The devEUI has already been used
 </pre>
+
+# High-level Design Ideas
+1. create a module/class for the generic logic (class `deveui_batch.BatchRegistration`) and decouple communication with the HTTP API, so that it can be unit tested by using a mock function/interface in the unit tests.
+1. The module itself serves as the CLI tool (when run directly)
+1. The module can be imported to the application implementing the REST API
 
 ## API Design
 
@@ -56,4 +62,5 @@ Ways to scale this:
 	The POST request should contain a unique client ID. The batch ID encodes that client ID (instead of const "1"). Processing of different batches can be passed on to different servers by an API gateway, e.g by using a consistent hashing algorithm on the batch ID. Perhaps DELETE method on the collection should not be allowed.
 - if batch size increases..., a new version of the API could introduce batch partitions ( `/batches/1/partitions/1`). GET `/batches/1` would return a HATEOAS-style list of links to the partition URIs. Each partition could have `status=="Processing"` that indicates that the client needs to poll.
 
-
+## Known Limitations / Ways to Improve
+1. A `concurrent.futures.ThreadPoolExecutor` was used (default 10 workers). Non-threaded couroutines with an event loop is more lightweight and generally safer (but also needs a lot more thinking to make it right). 
