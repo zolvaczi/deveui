@@ -88,22 +88,22 @@ class BatchRegistration():
         max_attempts = 10
         try:
             for attempt in range(max_attempts):
-                id = self.generate_unique_devEUI()
-                log.debug("    - Registering %s (%s/%s) ..." % (id, n, attempt))
+                eid = self.generate_unique_devEUI()
+                log.debug("    - Registering %s (%s/%s) ..." % (eid, n, attempt))
                 remote_fn = self.remote_registration_function
-                success = remote_fn(devEUI=id, registration_api=self.registration_api_url, timeout=self.timeout)
-                if success:
-                    self.registered_ids.add(id)
-                    log.debug(" OK - Successfully registered: %s (%s)" % (id, n))
-                    self.progress_bar()
-                    return id
-                else:
-                    log.debug("NOK - devEUI has already been used: %s (%s)" % (id, n))
+                success = remote_fn(devEUI=eid, registration_api=self.registration_api_url, timeout=self.timeout)
+                if not success:  # pylint: disable=no-else-continue
+                    log.debug("NOK - devEUI has already been used: %s (%s)" % (eid, n))
                     continue
+                else:
+                    self.registered_ids.add(eid)
+                    log.debug(" OK - Successfully registered: %s (%s)" % (eid, n))
+                    self.progress_bar()
+                    break
         except:
             log.exception("Unexpected exception")
             self.executor.shutdown()
-            raise
+            raise # just in case something would check the exception state of this aborting thread
 
     def progress_bar(self):
         if self.progress_bar_enabled:
@@ -121,7 +121,7 @@ class BatchRegistration():
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.num_workers)
         with self.executor:
             try:
-                for id in self.executor.map(self.register_task, range(batch_size), timeout=total_timeout):
+                for _ in self.executor.map(self.register_task, range(batch_size), timeout=total_timeout):
                     pass
             except KeyboardInterrupt:
                 sys.stderr.write("\nSIGINT detected... please wait for in-flight requests to finish (request timeout=%d s)...\n" % args.timeout)

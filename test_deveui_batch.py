@@ -1,4 +1,3 @@
-import pytest
 import deveui_batch
 import collections
 import time

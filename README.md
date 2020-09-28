@@ -12,7 +12,10 @@ Basic usage:
 To start the API application:
 `./daemon_deveui_batch.py LoRaWan_API_URL`
 
-To request for a batch of IDs (11 IDs):
+To request for a batch of IDs (100 IDs by deafult):
+`curl -v -X POST http://localhost:8080/api/v1/batch`
+
+Or to request a batch of 11 IDs, for instance:
 `curl -v -X POST -H "Content-Type: application/json" -d '{"batch_size": 11}' http://localhost:8080/api/v1/batch`
 
 To retrive the result:

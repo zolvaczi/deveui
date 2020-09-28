@@ -17,13 +17,11 @@ FORMAT = '%(asctime)s %(name)s %(levelname)s - %(message)s'
 logging.basicConfig(filename="%s.log" % sys.argv[0], level=logging.DEBUG, format=FORMAT)
 log = logging.getLogger('devEUI_reg')
 
-# TODO: create a global config object in a different module and store your args there!
-
 Message = collections.namedtuple('Message', ['batch_id', 'batch_size'])
 QUIT_SIGNAL = Message('QUIT',-1)
 
 def add_batch(body):
-    batch_size = body.get('batch_size', 100)
+    batch_size = 100 if not body else body.get('batch_size', 100)
     log.debug("add_batch(%s)" % batch_size)
     with current_app.app_context():
         current_app.request_q.put(Message('1', batch_size))
@@ -66,7 +64,6 @@ def deveui_batch_thread_fn(request_q, batch_registrator, ready_batches):
         log.debug('Request %s processed: %s' % (msg, ready_batches[msg.batch_id]))
 
 def main():
-    global args
     parser = argparse.ArgumentParser(description='DevEUI batch registration tool and HTTP API daemon')
     parser.add_argument('registration_api', help='URL of the devEUI registration API')
     parser.add_argument('--port', dest='port', help='Daemon listen port number (default 8080)', type=int, default=8080)
