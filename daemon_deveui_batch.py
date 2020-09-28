@@ -71,6 +71,7 @@ def main():
     parser.add_argument('--workers', dest='num_workers', help='Number of parallel requests in-flight (default 10)', type=int, default=10, choices=range(1, 11))
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='Print debug-level information on screen')
     args = parser.parse_args()
+    args.daemon=True
 
     batch_registrator = deveui_batch.BatchRegistration(args)
     request_q = Queue()

@@ -63,7 +63,7 @@ paths:
 
 ## API Design
 
-See `openapi/specification.yml` for details.
+See [openapi/specification.yml](openapi/specification.yml) for details.
 
 Client pseudo code to use the API:
 <pre>

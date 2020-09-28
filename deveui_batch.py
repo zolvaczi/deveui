@@ -63,7 +63,7 @@ class BatchRegistration():
         random.seed()
         self.executor = None
         self.remote_registration_function = remote_HTTP_registration
-        self.progress_bar_enabled = not args.verbose
+        self.progress_bar_enabled = not args.verbose and not args.daemon
 
     def generate_unique_devEUI(self):
         """
@@ -136,6 +136,7 @@ if __name__ == '__main__':
     parser.add_argument('--timeout', dest='timeout', help='Timeout per registration request (default 15)', type=int, default=15)
     parser.add_argument('--workers', dest='num_workers', help='Number of parallel requests in-flight (default 10)', type=int, default=10, choices=range(1, 11))
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='Print debug-level information on screen')
+    parser.add_argument('--daemon', dest='daemon', action='store_true', help='Print debug-level information on screen')
     args = parser.parse_args()
 
     sh = logging.StreamHandler(sys.stderr)
