@@ -1,0 +1,113 @@
+swagger: "2.0"
+info:
+  version: "1.0.0"
+  title: "devEUI Batch Registration API"
+basePath: "/api/v1"
+tags:
+  - name: "batch"
+schemes:
+  - "https"
+consumes:
+  - "application/json"
+produces:
+  - "application/json"
+paths:
+  /batch/{batch_id}:
+    get:
+      tags:
+        - "batch"
+      summary: "Get a batch"
+      operationId: "get_batch"
+      parameters:
+        - name: "batch_id"
+          in: "path"
+          description: "The id of the batch to retrieve"
+          required: true
+          type: "string"
+      responses:
+        200:
+          description: "Successfully retrived batch"
+          schema:
+            $ref: "#/definitions/Batch"
+        404:
+          description: "Batch doesn't exist"
+      #x-swagger-router-controller: "api.web.controllers.batch_controller"
+      x-swagger-router-controller: "daemon_deveui_batch"
+    delete:
+      tags:
+        - "batch"
+      summary: "Remove a batch"
+      operationId: "remove_batch"
+      parameters:
+        - name: "batch_id"
+          in: "path"
+          description: "The id of the batch to be removed"
+          required: true
+          type: "string"
+      responses:
+        202:
+          description: "Successfully deleted batch"
+        404:
+          description: "Batch doesn't exist"
+      #x-swagger-router-controller: "api.web.controllers.batch_controller"
+      x-swagger-router-controller: "daemon_deveui_batch"
+  /batch:
+    get:
+      tags:
+        - "batch"
+      summary: "Gets all batches"
+      operationId: "get_all_batches"
+      responses:
+        200:
+          description: "Successfully received all batches."
+          schema:
+            $ref: "#/definitions/Batches"
+      #x-swagger-router-controller: "api.web.controllers.batch_controller"
+      x-swagger-router-controller: "daemon_deveui_batch"
+    post:
+      tags:
+        - "batch"
+      summary: "Create a new batch"
+      operationId: "add_batch"
+      parameters:
+        - in: "body"
+          name: "body"
+          schema:
+            $ref: "#/definitions/BatchPost"
+      responses:
+        201:
+          description: "Batch created"
+      #x-swagger-router-controller: "api.web.controllers.batch_controller"
+      x-swagger-router-controller: "daemon_deveui_batch"
+definitions:
+  Batches:
+    type: array
+    items:
+      $ref: "#/definitions/Batch"
+  Batch:
+    type: "object"
+    required:
+      - "id"
+      - "status"
+      - "deveuis"
+    properties:
+      id:
+        type: "string"
+      status:
+        type: "string"
+        enum: ["Processing", "Completed"]
+      deveuis:
+        type: "array"
+        items:
+          type: "string"
+    example:
+      id: 1
+      status: "Completed"
+      deveuis: ["FFA45722AA738240"]
+  BatchPost:
+    properties:
+      batchSize:
+        type: "integer"
+        default: 100
+    example:
+      batchSize: 100

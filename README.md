@@ -1,5 +1,25 @@
 # DevEUI batch creation coding challenge
 
+## Usage
+### CLI
+Basic usage:
+`./deveui_batch.py LoRaWan_API_URL`
+
+For detailed parameters, see `./deveui_batch.py -h` 
+
+### API
+Basic usage:
+To start the API application:
+`./daemon_deveui_batch.py LoRaWan_API_URL`
+
+To request for a batch of IDs (11 IDs):
+`curl -v -X POST -H "Content-Type: application/json" -d '{"batch_size": 11}' http://localhost:8080/api/v1/batch`
+
+To retrive the result:
+`curl -v http://localhost:8080/api/v1/batch/1`
+
+For detailed parameters, see `./daemon_deveui_batch.py -h`
+
 ## Tool (CLI) Requirements
 1. It must register each DevEUI of the batch (of deafult size 100) with the LoRaWAN provider, and must expect and handle DevEUI conflicts
 1. DevEUI format is 16 hex characters
@@ -42,7 +62,7 @@ paths:
 
 Client pseudo code to use the API:
 <pre>
-base_URI = /device-id-api/v1/
+base_URI = /api/v1/
 1. POST /batches  (param: batch_size, default=100)
 	-> 201 Created
 		batch_URI = headers.location (/batches/1)
@@ -63,4 +83,7 @@ Ways to scale this:
 - if batch size increases..., a new version of the API could introduce batch partitions ( `/batches/1/partitions/1`). GET `/batches/1` would return a HATEOAS-style list of links to the partition URIs. Each partition could have `status=="Processing"` that indicates that the client needs to poll.
 
 ## Known Limitations / Ways to Improve
-1. A `concurrent.futures.ThreadPoolExecutor` was used (default 10 workers). Non-threaded couroutines with an event loop is more lightweight and generally safer (but also needs a lot more thinking to make it right). 
+1. A `concurrent.futures.ThreadPoolExecutor` was used (default 10 workers). Non-threaded couroutines with an event loop is more lightweight and generally safer (but also needs a lot more thinking to make it right).
+1. No authN/authZ on the API at the moment
+1. NotYetImplemented: although the API does queue and process multiple requests, handling of multiple `batch` resources is not implemented yet, there is only a single batch (const `batch/1`) that gets overwritten with the result of consecutive requests 
+1. NotYetImplemented: simialrly, only the stub exists for getting all or deleting any of the `batch` resources.

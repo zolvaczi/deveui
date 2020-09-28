@@ -29,7 +29,7 @@ args = Args(registration_api='xyz', daemon=False, port='', host='', batch_size=1
 def test_count():
     db = deveui_batch.BatchRegistration(args)
     db.remote_registration_function = mock_remote_function
-    result = db.do_batch()
+    result = db.do_batch(args.batch_size)
     assert len(result)==100
     assert success_counter==100
 

@@ -10,8 +10,9 @@ import concurrent.futures
 import urllib.request
 import argparse
 import json
+import socket
 
-FORMAT = '%(asctime)s %(levelname)s - %(message)s'
+FORMAT = '%(asctime)s %(name)s %(levelname)s - %(message)s'
 logging.basicConfig(filename="%s.log" % sys.argv[0], level=logging.DEBUG, format=FORMAT)
 log = logging.getLogger('devEUI_reg')
 
@@ -25,16 +26,19 @@ def remote_HTTP_registration(devEUI, registration_api, timeout):
     :return: True if the registration was successful, False for ID conflict; raises Exception for errors.
     """
     url = registration_api if registration_api.startswith('http:') else ("http://%s" % registration_api)
+    #log.debug("URL: %s" % url)
     data = str(json.dumps({'deveui': devEUI})).encode('utf-8')
     req = urllib.request.Request(url, data=data)
     try:
-        resp = urllib.request.urlopen(req, timeout=timeout)
-        if resp.status == 200:
-            return True
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            if resp.status == 200:
+                return True
     except urllib.error.HTTPError as e:
         if e.code == 422:
-            log.debug("422 devEUI has already been used: %s" % (devEUI))
-            return False
+            log.debug("422 devEUI has already been used: %s" % devEUI)
+    except socket.timeout:
+        log.error("socket.timeout during registering %s" % devEUI)
+    return False
 
 def get_short_code(devEUI):
     """
@@ -49,13 +53,15 @@ class BatchRegistration():
     """
     def __init__(self, args):
         ""
-        self.args = args
-        self.total_timeout = args.timeout * args.batch_size / args.num_workers
-        log.debug("total_timeout: %s" % self.total_timeout)
+        self.timeout = args.timeout
+        self.num_workers = args.num_workers
+        self.registration_api_url = args.registration_api
+        assert self.registration_api_url, "URL not specified: %s" % self.registration_api_url
+        log.debug("registration_api_url: %s" % self.registration_api_url)
         self.short_codes_used = set()
         self.registered_ids = set()
         random.seed()
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=args.num_workers)
+        self.executor = None
         self.remote_registration_function = remote_HTTP_registration
         self.progress_bar_enabled = not args.verbose
 
@@ -85,7 +91,7 @@ class BatchRegistration():
                 id = self.generate_unique_devEUI()
                 log.debug("    - Registering %s (%s/%s) ..." % (id, n, attempt))
                 remote_fn = self.remote_registration_function
-                success = remote_fn(devEUI=id, registration_api=self.args.registration_api, timeout=self.args.timeout)
+                success = remote_fn(devEUI=id, registration_api=self.registration_api_url, timeout=self.timeout)
                 if success:
                     self.registered_ids.add(id)
                     log.debug(" OK - Successfully registered: %s (%s)" % (id, n))
@@ -97,22 +103,25 @@ class BatchRegistration():
         except:
             log.exception("Unexpected exception")
             self.executor.shutdown()
-            return None
+            raise
 
     def progress_bar(self):
         if self.progress_bar_enabled:
             sys.stderr.write('.')
             sys.stderr.flush()
 
-    def do_batch(self):
+    def do_batch(self, batch_size):
         """
         Register a batch of devEUIs
         :return:
         """
-        #with concurrent.futures.ThreadPoolExecutor(max_workers=args.num_workers) as executor:
+        self.registered_ids.clear()
+        total_timeout = self.timeout * batch_size / self.num_workers
+        log.debug("total_timeout: %s" % total_timeout)
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.num_workers)
         with self.executor:
             try:
-                for id in self.executor.map(self.register_task, range(self.args.batch_size), timeout=self.total_timeout):
+                for id in self.executor.map(self.register_task, range(batch_size), timeout=total_timeout):
                     pass
             except KeyboardInterrupt:
                 sys.stderr.write("\nSIGINT detected... please wait for in-flight requests to finish (request timeout=%d s)...\n" % args.timeout)
@@ -124,7 +133,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='DevEUI batch registration tool and HTTP API daemon')
     parser.add_argument('registration_api', help='URL of the devEUI registration API')
     parser.add_argument('--batch', dest='batch_size', help='The batch size of DevEUIs to be registered (default 100)', type=int, default=100)
-    parser.add_argument('--timeout', dest='timeout', help='Timeout per registration request (default 10)', type=int, default=10)
+    parser.add_argument('--timeout', dest='timeout', help='Timeout per registration request (default 15)', type=int, default=15)
     parser.add_argument('--workers', dest='num_workers', help='Number of parallel requests in-flight (default 10)', type=int, default=10, choices=range(1, 11))
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='Print debug-level information on screen')
     args = parser.parse_args()
@@ -137,7 +146,7 @@ if __name__ == '__main__':
     log.addHandler(sh)
 
     log.debug("Starting registration batch...")
-    result = BatchRegistration(args).do_batch()
+    result = BatchRegistration(args).do_batch(args.batch_size)
 
     print("\nShort Code\tDevEUI")
     for devEUI in result:
