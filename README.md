@@ -82,6 +82,8 @@ base_URI = /api/v1/
 4. DELETE $batch_URI
 </pre>
 
+![](sequence-diagram.png)
+
 Ways to scale this:
 - assume that there can be multiple clients that need their individual batches in parallel:
 	The POST request should contain a unique client ID. The batch ID encodes that client ID (instead of const "1"). Processing of different batches can be passed on to different servers by an API gateway, e.g by using a consistent hashing algorithm on the batch ID. Perhaps DELETE method on the collection should not be allowed.
