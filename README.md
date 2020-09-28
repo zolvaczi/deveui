@@ -63,6 +63,8 @@ paths:
 
 ## API Design
 
+See `openapi/specification.yml` for details.
+
 Client pseudo code to use the API:
 <pre>
 base_URI = /api/v1/

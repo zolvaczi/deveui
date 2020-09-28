@@ -1,0 +1,10 @@
+entity client as c
+entity API as s
+c->s: POST /api/v1/batch
+c<--s: 201 Created, Location: /api/v1/batch/1
+loop
+  c->s: GET /api/v1/batch/1
+  c<--s: 200 OK, body: {"status": "Processing"}
+end
+c->s: GET /api/v1/batch/1
+c<--s: 200 OK, body: {"status": "Completed, "deveuis": [...]}
